@@ -5871,6 +5871,7 @@ async function requestDropColumns() {
           schema: target.schema || undefined,
           tableName: target.tableName,
           name,
+          identifierQuote: connectionStore.connectionIdentifierQuote?.(props.connectionId),
         }),
       ),
     );
@@ -14608,7 +14609,9 @@ function copyDdl() {
 
 function openTableStructureEditor(initialTab: TableInfoTab = "columns"): boolean {
   if (!props.connectionId || !props.database || !props.tableMeta?.tableName || !canOpenTableStructureEditor.value) return false;
-  queryStore.openTableStructure(props.connectionId, props.database, props.tableMeta.schema, props.tableMeta.tableName, initialTab === "relations" ? "columns" : initialTab, undefined, props.tableMeta.catalog, (props.tableMeta.tableType || "").toUpperCase() === "VIEW" ? "view" : "table");
+  const metaTableType = (props.tableMeta.tableType || "").toUpperCase();
+  const tableType = metaTableType === "MATERIALIZED_VIEW" ? "materialized_view" : metaTableType === "VIEW" ? "view" : "table";
+  queryStore.openTableStructure(props.connectionId, props.database, props.tableMeta.schema, props.tableMeta.tableName, initialTab === "relations" ? "columns" : initialTab, undefined, props.tableMeta.catalog, tableType);
   return true;
 }
 
@@ -16007,7 +16010,11 @@ useUpdateBlocker(() => (hasPendingChanges.value || hasPendingDataEditorDraft.val
           :filtered-columns="filteredFilterBuilderColumnOptions"
           :mode-options="filterModeOptions"
           :column-search="filterBuilderColumnSearch"
+          :has-local-column-filters="hasLocalColumnFilters"
+          :local-filter-count="localFilterCount"
+          :local-filter-summaries="localFilterSummaries"
           :disabled="!canUseWhereSearch"
+          @clear-local-filter="clearLocalFilter"
           @update:column-search="filterBuilderColumnSearch = $event"
           @ensure-rule="ensureStructuredFilterRule"
           @add-rule="addStructuredFilterRule"
@@ -16040,9 +16047,13 @@ useUpdateBlocker(() => (hasPendingChanges.value || hasPendingDataEditorDraft.val
           :filtered-columns="filteredFilterBuilderColumnOptions"
           :mode-options="filterModeOptions"
           :column-search="filterBuilderColumnSearch"
+          :has-local-column-filters="hasLocalColumnFilters"
+          :local-filter-count="localFilterCount"
+          :local-filter-summaries="localFilterSummaries"
           :disabled="!canUseWhereSearch"
           :value-suggestions="canUseWhereSearch ? filterValueSuggestionState : undefined"
           @update:height="updateTextFilterPanelHeight"
+          @clear-local-filter="clearLocalFilter"
           @update:column-search="filterBuilderColumnSearch = $event"
           @ensure-rule="ensureStructuredFilterRule"
           @add-rule="addStructuredFilterRule"
